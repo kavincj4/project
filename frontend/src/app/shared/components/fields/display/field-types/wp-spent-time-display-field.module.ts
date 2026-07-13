@@ -71,29 +71,42 @@ export class WorkPackageSpentTimeDisplayField extends WorkDisplayField {
 
     if (this.resource.project && this.resource.id) {
       const wpID = this.resource.id.toString();
+      let resolvedHref:string | null = null;
       this.apiV3Service.projects
         .id(this.resource.project as ProjectResource)
         .get()
         .subscribe((project:ProjectResource) => {
-          // Link to the cost report having the work package filter preselected. No grouping.
-          const href = URI(
-            this.PathHelper.projectTimeEntriesPath(
-              project.identifier as string,
-            ),
-          )
-            .search(
-              `fields[]=WorkPackageId&operators[WorkPackageId]=%3D_child_work_packages&values[WorkPackageId]=${wpID}&set_filter=1`,
-            )
-            .toString();
-
-          link.href = href;
+          resolvedHref = this.buildCostReportHref(project.identifier as string, wpID);
+          link.href = resolvedHref;
         });
+
+      link.addEventListener('click', (e:MouseEvent) => {
+        e.preventDefault();
+        if (resolvedHref) {
+          window.location.href = resolvedHref;
+        } else {
+          this.apiV3Service.projects
+            .id(this.resource.project as ProjectResource)
+            .get()
+            .subscribe((project:ProjectResource) => {
+              window.location.href = this.buildCostReportHref(project.identifier as string, wpID);
+            });
+        }
+      });
     }
 
     element.innerHTML = '';
     element.appendChild(link);
 
     this.appendTimelogLink(element);
+  }
+
+  private buildCostReportHref(projectIdentifier:string, wpID:string):string {
+    return URI(this.PathHelper.projectTimeEntriesPath(projectIdentifier))
+      .search(
+        `fields[]=WorkPackageId&operators[WorkPackageId]=%3D_child_work_packages&values[WorkPackageId]=${wpID}&set_filter=1`,
+      )
+      .toString();
   }
 
   private appendTimelogLink(element:HTMLElement) {
