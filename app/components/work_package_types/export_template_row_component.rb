@@ -40,5 +40,18 @@ module WorkPackageTypes
       @template = template
       @type = type
     end
+
+    def wrapper_uniq_by
+      @template.id
+    end
+
+    private
+
+    def toggle_label
+      I18n.t(
+        "types.edit.export_configuration.pdf_export_templates.actions.label_toggle_template",
+        template: @template.label
+      )
+    end
   end
 end
