@@ -28,7 +28,7 @@
  * ++
  */
 
-import { BlockNoteEditorOptions, BlockNoteSchema } from '@blocknote/core';
+import { BlockNoteEditorOptions, BlockNoteSchema, createExtension } from '@blocknote/core';
 import { ExternalLinkA11yExtension } from '../extensions/external-link-a11y';
 import { ExternalLinkCaptureExtension } from '../extensions/external-link-capture';
 import { User } from '@blocknote/core/comments';
@@ -43,7 +43,9 @@ import {
   workPackageSlashMenu,
   useHashWpMenu,
 } from 'op-blocknote-extensions';
+import { Plugin, PluginKey } from 'prosemirror-state';
 import { useCallback, useEffect, useMemo } from 'react';
+import { yUndoPluginKey } from 'y-prosemirror';
 import * as Y from 'yjs';
 import { useBlockNoteAttachments } from '../hooks/useBlockNoteAttachments';
 import { useBlockNoteLocale } from '../hooks/useBlockNoteLocale';
@@ -72,6 +74,45 @@ const schema = BlockNoteSchema.create().extend({
   inlineContentSpecs: {
     openProjectWorkPackageInline: openProjectWorkPackageInlineSpec,
   },
+});
+
+// registerPlugin() triggers destroyPluginViews → yUndoPlugin.view.destroy() →
+// undoManager.destroy() → ydoc.off('afterTransaction'). Plugin state is carried
+// over by reconfigure, so init() never re-runs and the handler is never restored.
+// This plugin's view() fires on every initPluginViews pass and re-attaches it.
+//
+// Relies on UndoManager.afterTransactionHandler being a stable instance property —
+// verify this still holds when upgrading yjs or y-prosemirror.
+const undoManagerGuardKey = new PluginKey('opUndoManagerGuard');
+const UndoManagerGuardExtension = createExtension({
+  key: 'opUndoManagerGuard',
+  prosemirrorPlugins: [
+    new Plugin({
+      key: undoManagerGuardKey,
+      view(editorView) {
+        interface UMWithHandler { afterTransactionHandler?:(...args:unknown[]) => void }
+
+        function ensureSubscribed() {
+          const undoState = yUndoPluginKey.getState(editorView.state);
+          if (!undoState?.undoManager) return;
+          const um = undoState.undoManager;
+          const handler = (um as unknown as UMWithHandler).afterTransactionHandler;
+          if (um.doc && handler) {
+            um.doc.on('afterTransaction', handler);
+          }
+        }
+
+        ensureSubscribed();
+        return {
+          update(_view, prevState) {
+            if (prevState.plugins !== editorView.state.plugins) {
+              ensureSubscribed();
+            }
+          },
+        };
+      },
+    }),
+  ],
 });
 
 function generateRandomColor() {
@@ -119,6 +160,7 @@ export function OpBlockNoteEditor({
       extensions: [
         ExternalLinkA11yExtension,
         ...(captureExternalLinks ? [ExternalLinkCaptureExtension] : []),
+        UndoManagerGuardExtension,
       ],
     };
   }, [hocuspocusProvider, doc, activeUser, localeDictionary, attachmentsEnabled, uploadFile, captureExternalLinks]);
