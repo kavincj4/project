@@ -29,11 +29,10 @@
 #++
 require "rails_helper"
 
-RSpec.describe OpenProject::Common::InplaceEditFields::CalculatedValueInputComponent,
-               type: :component do
+RSpec.describe OpenProject::Common::InplaceEditFields::CalculatedValueInputComponent, type: :component do
   include ViewComponent::TestHelpers
 
-  let(:project) { build_stubbed(:project) }
+  shared_let(:project) { create(:project) }
 
   it "renders a readonly text input without buttons" do
     component_class = described_class
@@ -49,5 +48,33 @@ RSpec.describe OpenProject::Common::InplaceEditFields::CalculatedValueInputCompo
 
     expect(rendered_content).to have_no_button(I18n.t(:button_save))
     expect(rendered_content).to have_no_button(I18n.t(:button_cancel))
+  end
+
+  context "when rendering a boolean value", with_ee: %i[calculated_values] do
+    let(:custom_field) { create(:calculated_value_project_custom_field, projects: [project]) }
+
+    current_user { build_stubbed(:admin) }
+
+    before do
+      create(:custom_value, customized: project, custom_field:, value: true)
+    end
+
+    it "renders the formatted custom value instead of the raw typed value" do
+      attribute = custom_field.attribute_getter
+
+      component_class = described_class
+      render_in_view_context(project) do |model|
+        primer_form_with(url: "/foo", model:) do |f|
+          render_inline_form(f) do |form|
+            render component_class.new(form:, model:, attribute:, label: "Calc")
+          end
+        end
+      end
+
+      expect(rendered_content).to have_field("project[#{attribute}]",
+                                             type: "text",
+                                             readonly: true,
+                                             with: I18n.t(:general_text_Yes))
+    end
   end
 end
