@@ -53,6 +53,8 @@ module OpenProject::Backlogs::Patches::WorkPackagePatch
     scopes :with_backlogs_neighbours
     scopes :without_status_considered_closed
     scopes :without_excluded_type
+    scopes :with_card_hash
+    scopes :with_backlog_card_data
   end
 
   module ClassMethods

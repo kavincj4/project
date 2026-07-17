@@ -30,13 +30,13 @@
 
 require "rails_helper"
 
-RSpec.describe Backlogs::InboxComponent, type: :component do
+RSpec.describe Backlogs::InboxComponent, type: :component, with_flag: { backlogs_lazy_cards: true } do
   include Rails.application.routes.url_helpers
 
   shared_let(:project) { create(:project) }
   shared_let(:user) { create(:admin) }
   let(:work_packages) { [] }
-  let(:wp_scope) { WorkPackage.where(id: work_packages.map(&:id)).order(:position) }
+  let(:wp_scope) { WorkPackage.where(id: work_packages.map(&:id)).with_card_hash.order(:position) }
   let(:show_all_backlog) { false }
   let(:filter_params) { {} }
 
@@ -146,19 +146,24 @@ RSpec.describe Backlogs::InboxComponent, type: :component do
     it "renders a row for each work package", :aggregate_failures do
       expect(page).to have_css(".Box-row", count: 2)
 
-      # renders the subject of each work package
-      expect(page).to have_text("First item")
-      expect(page).to have_text("Second item")
-
       # does not show the blankslate
       expect(page).to have_no_css("h4", text: "Backlog inbox is empty")
     end
 
-    it "renders story points on each work package card" do
-      expect(page).to have_css("span", text: "2", aria: { hidden: true })
-      expect(page).to have_css(".sr-only", text: "2 story points")
-      expect(page).to have_css("span", text: "4", aria: { hidden: true })
-      expect(page).to have_css(".sr-only", text: "4 story points")
+    it "renders a lazy card frame for each work package" do
+      work_packages.each do |work_package|
+        expect(page).to have_css("turbo-frame#card_work_package_#{work_package.id}[loading='lazy']")
+      end
+    end
+
+    context "when the backlogs_lazy_cards feature is disabled", with_flag: { backlogs_lazy_cards: false } do
+      it "renders the cards inline without turbo-frames" do
+        work_packages.each do |work_package|
+          expect(page).to have_no_css("turbo-frame#work_package_#{work_package.id}_card")
+        end
+        expect(page).to have_css(".sr-only", text: "2 story points")
+        expect(page).to have_css(".sr-only", text: "4 story points")
+      end
     end
   end
 
