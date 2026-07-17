@@ -37,7 +37,7 @@
     "@vitest/coverage-v8": "^4.1.10",
     "@vitest/eslint-plugin": "^1.6.22",
     "angular-eslint": "^22.0.0",
-    "browserslist": "^4.28.4",
+    "browserslist": "^4.28.6",
     "eslint": "^10.6.0",
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-jsx-a11y": "^6.10.2",
