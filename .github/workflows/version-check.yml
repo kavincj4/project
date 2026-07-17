@@ -35,7 +35,7 @@ jobs:
 
       - name: Add comment if no work package is linked
         if: steps.version-check.outputs.no_ticket == 'true'
-        uses: marocchino/sticky-pull-request-comment@d4d6b0936434b21bc8345ad45a440c5f7d2c40ff # v3
+        uses: marocchino/sticky-pull-request-comment@5770ad5eb8f42dd2c4f34da00c94c5381e49af88 # v3
         with:
           header: version-mismatch-comment
           message: |
@@ -47,7 +47,7 @@ jobs:
 
       - name: Add comment if versions differ
         if: steps.version-check.outputs.version_mismatch == 'true'
-        uses: marocchino/sticky-pull-request-comment@d4d6b0936434b21bc8345ad45a440c5f7d2c40ff # v3
+        uses: marocchino/sticky-pull-request-comment@5770ad5eb8f42dd2c4f34da00c94c5381e49af88 # v3
         with:
           header: version-mismatch-comment
           message: |
@@ -65,7 +65,7 @@ jobs:
              - The work package version OR your pull request target branch is correct
       - name: Version check passed
         if: steps.version-check.outputs.version_mismatch != 'true' && steps.version-check.outputs.no_ticket != 'true'
-        uses: marocchino/sticky-pull-request-comment@d4d6b0936434b21bc8345ad45a440c5f7d2c40ff # v3
+        uses: marocchino/sticky-pull-request-comment@5770ad5eb8f42dd2c4f34da00c94c5381e49af88 # v3
         with:
           header: version-mismatch-comment
           delete: true
