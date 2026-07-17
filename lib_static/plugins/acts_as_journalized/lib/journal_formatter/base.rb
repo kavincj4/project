@@ -37,6 +37,10 @@ module JournalFormatter
     include Rails.application.routes.url_helpers
     include ERB::Util
 
+    attr_reader :journal
+
+    delegate :project, to: :journal
+
     # We break the values between from and to values
     # in the formatter if the length of one of the values
     # exceeds this magic number of characters
@@ -47,6 +51,8 @@ module JournalFormatter
     end
 
     def render(key, values, options = { html: true })
+      return render_permission_denied_message(options) if permission_denied?(options)
+
       label, old_value, value = format_details(key, values)
 
       if options[:html]
@@ -96,11 +102,24 @@ module JournalFormatter
              new: value)
     end
 
-    def render_binary_detail_text(label, value, old_value)
-      if value.blank?
-        I18n.t(:text_journal_deleted, label:, old: old_value)
+    def permission_denied?(options)
+      permission = options[:permission]
+      return false unless permission
+
+      if permission.is_a?(Symbol)
+        !User.current.allowed_in_project?(permission, project)
       else
-        I18n.t(:text_journal_added, label:, value:)
+        !instance_exec(&permission)
+      end
+    end
+
+    def render_permission_denied_message(options)
+      message = I18n.t(:text_journal_permission_denied)
+
+      if options[:html]
+        content_tag("span", message, class: %w(text-italic color-fg-subtle mt-1 tmp-mt-1))
+      else
+        "_#{message}_"
       end
     end
 
