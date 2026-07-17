@@ -147,15 +147,13 @@ module CustomField::CalculatedValue
     end
 
     def usable_custom_field_references_for_formula
-      visible_cfs = ProjectCustomField
-                      .where(field_format: FIELD_FORMATS_FOR_FORMULA)
-                      .where.not(id:)
-                      .visible
-
       cache = {}
-      visible_cfs.reject do |custom_field|
-        custom_field.formula_references_id?(id, cache)
-      end
+
+      ProjectCustomField
+        .where(field_format: FIELD_FORMATS_FOR_FORMULA)
+        .where.not(id:)
+        .visible
+        .reject { it.formula_references_id?(id, cache) }
     end
 
     def validate_referenced_custom_fields
@@ -174,20 +172,15 @@ module CustomField::CalculatedValue
     end
 
     def formula_references_id?(original_id, cache = {})
-      cache.fetch(id) do
-        cache[id] = if field_format_calculated_value?
-                      referenced_custom_fields = formula_referenced_custom_field_ids
+      return false unless field_format_calculated_value?
 
-                      if referenced_custom_fields.include?(original_id) || referenced_custom_fields.include?(id)
-                        true
-                      else
-                        ProjectCustomField.where(id: referenced_custom_fields).any? do |referenced_field|
-                          referenced_field.formula_references_id?(original_id, cache)
-                        end
-                      end
-                    else
-                      false
-                    end
+      cache.fetch(id) do
+        cache[id] = true # break infinite loop while recursing
+
+        referenced_ids = formula_referenced_custom_field_ids
+
+        cache[id] = referenced_ids.intersect?([original_id, id]) ||
+          ProjectCustomField.where(id: referenced_ids).any? { it.formula_references_id?(original_id, cache) }
       end
     end
 
