@@ -1,0 +1,8 @@
+#add-existing-work-package-dialog
+  .Overlay-titleWrap
+    min-width: 0
+
+  .Overlay-title
+    // Protect against sprint/backlog names stretching the dialog header
+    // and pushing the body out of view.
+    @include text-shortener
