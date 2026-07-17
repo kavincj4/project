@@ -36,8 +36,16 @@ import {
 import { OpSortableListsItemDirective } from './sortable-lists-item.directive';
 import { OpSortableListsDirective, SortableListsDropEvent } from './sortable-lists.directive';
 
+// This spec is the Task 8 compile/smoke port of the pre-engine suite onto
+// the engine-backed directives: same 9 cases, updated to the richer
+// `SortableListsDropEvent` shape and to the engine's own drag-state
+// attribute values. A full behavioral suite (collapse mode vs. explicit
+// lists, cross-list moves, `complete`/`finalize`) lands in the next task.
+
 // Two lists with overlapping item ids: the second list proves per-instance
-// isolation, since only the payload scope distinguishes their items.
+// isolation, since only the payload scope distinguishes their items. Neither
+// list declares an `opSortableListsList` child, so both roots operate in
+// single-list (collapse) mode and emit on their own proxy outputs.
 @Component({
   imports: [OpSortableListsDirective, OpSortableListsItemDirective],
   template: `
@@ -74,6 +82,13 @@ class TestHostComponent {
   otherDrops:SortableListsDropEvent[] = [];
 }
 
+// Drop assertions ignore the transaction bookkeeping fields (`transactionId`,
+// `sourceListId`, `complete`) — those are asserted against directly by the
+// Task 9 behavioral suite; here only the resolved intent matters.
+function intents(events:SortableListsDropEvent[]) {
+  return events.map(({ sourceId, targetId, edge }) => ({ sourceId, targetId, edge }));
+}
+
 describe('sortable-lists directives', () => {
   let fixture:ComponentFixture<TestHostComponent>;
   let host:TestHostComponent;
@@ -99,7 +114,7 @@ describe('sortable-lists directives', () => {
     await simulation.start();
     await simulation.drop(item('list-one', 2), towardsEdgeOf(item('list-one', 2), 'bottom'));
 
-    expect(host.drops).toEqual([{ sourceId: 'a', targetId: 'c', edge: 'bottom' }]);
+    expect(intents(host.drops)).toEqual([{ sourceId: 'a', targetId: 'c', edge: 'bottom' }]);
   });
 
   it('reflects drag and drop-position state through host attributes', async () => {
@@ -111,7 +126,7 @@ describe('sortable-lists directives', () => {
     await simulation.dragOver(target, towardsEdgeOf(target, 'top'));
     fixture.detectChanges();
 
-    expect(source.getAttribute('data-dragging')).toBe('true');
+    expect(source.getAttribute('data-dragging')).toBe('source');
     expect(target.getAttribute('data-drop-position')).toBe('top');
 
     await simulation.drop(target, towardsEdgeOf(target, 'top'));
@@ -190,7 +205,7 @@ describe('sortable-lists directives', () => {
     await simulation.start();
     await simulation.drop(item('list-one', 0), towardsEdgeOf(item('list-one', 0), 'top'));
 
-    expect(host.drops).toEqual([{ sourceId: 'd', targetId: 'a', edge: 'top' }]);
+    expect(intents(host.drops)).toEqual([{ sourceId: 'd', targetId: 'a', edge: 'top' }]);
   });
 
   it('keeps remaining items functional after items are removed', async () => {
@@ -202,7 +217,7 @@ describe('sortable-lists directives', () => {
     await simulation.start();
     await simulation.drop(item('list-one', 1), towardsEdgeOf(item('list-one', 1), 'bottom'));
 
-    expect(host.drops).toEqual([{ sourceId: 'b', targetId: 'c', edge: 'bottom' }]);
+    expect(intents(host.drops)).toEqual([{ sourceId: 'b', targetId: 'c', edge: 'bottom' }]);
   });
 
   it('warns and stays inert for an empty item id', async () => {
