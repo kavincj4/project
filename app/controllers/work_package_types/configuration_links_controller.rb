@@ -32,8 +32,8 @@ module WorkPackageTypes
   # "Switch to linked mode" / "Change source type" on a type's configuration
   # tabs: the source-picker dialog, the danger confirmation (whose wording
   # depends on whether the type is currently Independent or Linked), and the
-  # switch itself. The reverse switch back to Independent is handled here too.
-  # Built to mirror ConfigurationCopiesController.
+  # switch itself. Built to mirror ConfigurationCopiesController; the reverse
+  # switch back to Independent lives in ConfigurationIndependenceController.
   class ConfigurationLinksController < BaseTabController
     include SubtypesFeature
     include OpTurbo::ComponentStream
@@ -64,18 +64,6 @@ module WorkPackageTypes
       result = SwitchToLinkedModeService.new(type: @type, aspect:).call(source:)
 
       close_dialog_via_turbo_stream("##{ConfigurationLinks::ConfirmDialogComponent::DIALOG_ID}")
-
-      respond_to_switch(result)
-
-      respond_with_turbo_streams
-    end
-
-    # Switch back to Independent, adopting the current source's config first.
-    # TODO: this direct switch is a stopgap. It will be replaced by a modal
-    # confirmation process (source-less danger confirmation) mirroring the
-    # switch-to-linked flow, so the user acknowledges the override first.
-    def independent
-      result = SwitchToIndependentModeService.new(type: @type, aspect:, user: current_user).call(source:)
 
       respond_to_switch(result)
 
