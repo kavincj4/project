@@ -29,21 +29,29 @@
 import { type Edge } from '@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge';
 
 // Drop indicator contract shared by the Angular sortable helpers: the closest
-// edge is written to a `data-drop-position` attribute on the hovered element.
-// The visual line is drawn by each consumer's own stylesheet via the
-// `[data-drop-position="top|bottom|left|right"]` selector, since orientation
-// (and therefore the styling) differs per surface.
+// edge is written to a `data-drop-position` attribute on the hovered element,
+// along with a `data-drop-position-owner` attribute tracking which component
+// rendered the indicator. The visual line is drawn by each consumer's own
+// stylesheet via the `[data-drop-position="top|bottom|left|right"]` selector,
+// since orientation (and therefore the styling) differs per surface.
 export const dropPositionAttribute = 'data-drop-position';
+export const dropPositionOwnerAttribute = 'data-drop-position-owner';
 
-export function renderDropIndicator(element:HTMLElement, edge:Edge|null):void {
+export function renderDropIndicator(element:HTMLElement, edge:Edge|null, ownerId:string):void {
   if (!edge) {
-    clearDropIndicator(element);
+    clearDropIndicator(element, ownerId);
     return;
   }
 
   element.setAttribute(dropPositionAttribute, edge);
+  element.setAttribute(dropPositionOwnerAttribute, ownerId);
 }
 
-export function clearDropIndicator(element:HTMLElement):void {
-  element.removeAttribute(dropPositionAttribute);
+export function clearDropIndicator(element:HTMLElement, ownerId:string):void {
+  // Only clear if the stored owner matches; another owner may have rendered
+  // an indicator since this one was set.
+  if (element.getAttribute(dropPositionOwnerAttribute) === ownerId) {
+    element.removeAttribute(dropPositionAttribute);
+    element.removeAttribute(dropPositionOwnerAttribute);
+  }
 }

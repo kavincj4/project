@@ -54,10 +54,21 @@ export function reorderById<T>({
   list:T[];
   getId:(item:T) => string;
   sourceId:string;
-  targetId:string;
+  targetId:string|null;
   closestEdge:Edge|null;
   axis:SortableAxis;
 }):T[] {
+  if (targetId === null) {
+    const startIndex = list.findIndex((item) => getId(item) === sourceId);
+    if (startIndex === -1 || startIndex === list.length - 1) {
+      return list;
+    }
+    const appended = [...list];
+    const [moved] = appended.splice(startIndex, 1);
+    appended.push(moved);
+    return appended;
+  }
+
   const startIndex = list.findIndex((item) => getId(item) === sourceId);
   const indexOfTarget = list.findIndex((item) => getId(item) === targetId);
 

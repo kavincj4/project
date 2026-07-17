@@ -33,10 +33,11 @@
 // lists contain items with equal ids.
 export interface SortableItemData extends Record<string|symbol, unknown> {
   itemId:string;
+  listId:string;
 }
 
 export interface SortableItemPayloadScope {
-  itemData(itemId:string):SortableItemData;
+  itemData(itemId:string, listId:string):SortableItemData;
   isItemData(data:Record<string|symbol, unknown>):data is SortableItemData;
 }
 
@@ -44,17 +45,20 @@ export function createSortableItemPayloadScope():SortableItemPayloadScope {
   const scopeKey = Symbol('op-sortable-item');
 
   return {
-    itemData(itemId:string):SortableItemData {
+    itemData(itemId:string, listId:string):SortableItemData {
       return {
         [scopeKey]: true,
         itemId,
+        listId,
       };
     },
 
     isItemData(data:Record<string|symbol, unknown>):data is SortableItemData {
       return data[scopeKey] === true
         && typeof data.itemId === 'string'
-        && data.itemId.length > 0;
+        && data.itemId.length > 0
+        && typeof data.listId === 'string'
+        && data.listId.length > 0;
     },
   };
 }
